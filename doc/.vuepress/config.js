@@ -46,8 +46,21 @@ module.exports = {
       },
 
       {
-        text: 'Changelog',
-        link: '/changelog/'
+        text: 'Release Notes',
+        items: [
+          {
+            text: 'Changelog',
+            link: '/release-notes/changelog.md'
+          },
+          {
+            text: 'Migration to 2.0',
+            link: '/release-notes/migration.md'
+          },
+          {
+            text: 'v1.x documentation',
+            link: 'https://github.com/Vincit/objection.js/tree/v1/doc'
+          }
+        ]
       },
 
       {
@@ -68,6 +81,7 @@ module.exports = {
             'relations',
             'query-examples',
             'transactions',
+            'hooks',
             'validation',
             'documents',
             'plugins',
@@ -80,7 +94,12 @@ module.exports = {
         {
           title: 'Model API Reference',
           collapsable: false,
-          children: ['overview', 'static-properties', 'static-methods', 'instance-methods']
+          children: [
+            'overview',
+            'static-properties',
+            'static-methods',
+            'instance-methods'
+          ]
         }
       ],
 
@@ -116,6 +135,7 @@ module.exports = {
             'subqueries',
             'relation-subqueries',
             'joins',
+            'modifiers',
             'composite-keys',
             'polymorphic-associations',
             'json-queries',

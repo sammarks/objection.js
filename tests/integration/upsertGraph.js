@@ -2,6 +2,7 @@ const expect = require('expect.js');
 const chai = require('chai');
 const Promise = require('bluebird');
 const { raw, transaction, ValidationError } = require('../../');
+const { createRejectionReflection } = require('../../testUtils/testUtils');
 const { FetchStrategy } = require('../../lib/queryBuilder/graph/GraphOptions');
 const mockKnexFactory = require('../../testUtils/mockKnex');
 
@@ -322,8 +323,8 @@ module.exports = session => {
                       ]
                     });
 
-                    return Promise.all([trx('Model1'), trx('model2')]).spread(
-                      (model1Rows, model2Rows) => {
+                    return Promise.all([trx('Model1'), trx('model2')]).then(
+                      ([model1Rows, model2Rows]) => {
                         // Row 5 should be deleted.
                         expect(model1Rows.find(it => it.id == 5)).to.equal(undefined);
                         // Row 6 should NOT be deleted even thought its parent is.
@@ -452,8 +453,8 @@ module.exports = session => {
                 ]
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 5 should be deleted.
                   expect(model1Rows.find(it => it.id == 5)).to.equal(undefined);
                   // Row 6 should NOT be deleted even thought its parent is.
@@ -732,8 +733,8 @@ module.exports = session => {
                         'select "model2"."model1_id", "model2"."id_col" from "model2" where "model2"."model1_id" in (2) order by "model2"."id_col" asc',
                         'select "Model1Model2"."model2Id" as "objectiontmpjoin0", "Model1"."id" from "Model1" inner join "Model1Model2" on "Model1"."id" = "Model1Model2"."model1Id" where "Model1Model2"."model2Id" in (1, 2) order by "Model1"."id" asc',
 
-                        'delete from "Model1Model2" where "Model1Model2"."model1Id" in (select "Model1"."id" from "Model1" inner join "Model1Model2" on "Model1"."id" = "Model1Model2"."model1Id" where "Model1Model2"."model2Id" in (1) and "Model1"."id" in (5) order by "Model1"."id" asc) and "Model1Model2"."model2Id" = 1',
-                        'update "model2" set "model1_id" = NULL where "model2"."id_col" in (2) and "model2"."model1_id" = 2',
+                        'delete from "Model1Model2" where "Model1Model2"."model1Id" in (select "Model1"."id" from "Model1" inner join "Model1Model2" on "Model1"."id" = "Model1Model2"."model1Id" where "Model1Model2"."model2Id" in (1) and "Model1"."id" in (5) order by "Model1"."id" asc) and "Model1Model2"."model2Id" in (1)',
+                        'update "model2" set "model1_id" = NULL where "model2"."id_col" in (2) and "model2"."model1_id" in (2)',
 
                         'insert into "Model1" ("model1Prop1") values (\'inserted manyToMany\') returning "id"',
                         'insert into "model2" ("model1_id", "model2_prop1") values (2, \'inserted hasMany\') returning "id_col"',
@@ -795,8 +796,8 @@ module.exports = session => {
                   ]
                 });
 
-                return Promise.all([trx('Model1'), trx('model2')]).spread(
-                  (model1Rows, model2Rows) => {
+                return Promise.all([trx('Model1'), trx('model2')]).then(
+                  ([model1Rows, model2Rows]) => {
                     // Row 3 should NOT be deleted.
                     expect(model1Rows.find(it => it.id == 3)).to.eql({
                       id: 3,
@@ -906,7 +907,7 @@ module.exports = session => {
         };
 
         return BoundModel1.query()
-          .upsertGraph(upsert, { fetchStrategy })
+          .upsertGraph(upsert, { fetchStrategy, allowRefs: true })
           .then(() => {
             return BoundModel1.query()
               .findById(1)
@@ -1251,8 +1252,8 @@ module.exports = session => {
                 ]
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 3 should NOT be deleted.
                   expect(model1Rows.find(it => it.id == 3)).to.eql({
                     id: 3,
@@ -1381,8 +1382,8 @@ module.exports = session => {
                 ]
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 3 should NOT be deleted.
                   expect(model1Rows.find(it => it.id == 3)).to.eql({
                     id: 3,
@@ -1503,7 +1504,7 @@ module.exports = session => {
                 }
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(model1Rows => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(([model1Rows]) => {
                 // Row 3 should be deleted.
                 expect(model1Rows.find(it => it.id == 3)).to.equal(undefined);
               });
@@ -1542,8 +1543,8 @@ module.exports = session => {
                 }
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 3 should be deleted.
                   expect(model1Rows.find(it => it.id == 3)).to.equal(undefined);
                 }
@@ -1656,8 +1657,8 @@ module.exports = session => {
                 }
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 3 should not be deleted.
                   expect(model1Rows.find(it => it.id == 3)).to.not.equal(undefined);
                 }
@@ -1893,6 +1894,103 @@ module.exports = session => {
           });
       });
 
+      it('should insert with an id instead of relating if `insertMissing` option is true and the item doesnt exist int the db', () => {
+        const upsert = {
+          id: 2,
+
+          // update idCol=1
+          // delete idCol=2
+          // and insert one new
+          model1Relation2: [
+            {
+              idCol: 1,
+              model2Prop1: 'updated hasMany 1',
+
+              // update id=4
+              // delete id=5
+              // and insert one new
+              model2Relation1: [
+                {
+                  // Has an id and exist in db --> relate
+                  id: 1
+                },
+                {
+                  // Has an id and exists in the relation --> update
+                  id: 4,
+                  model1Prop1: 'updated manyToMany 1'
+                },
+                {
+                  // Has an id and doesn't exist in db --> insert
+                  id: 1000,
+                  model1Prop1: 'inserted manyToMany'
+                }
+              ]
+            },
+            {
+              // Has an id and doesn't exist in db --> insert
+              idCol: 1000,
+              model2Prop1: 'inserted hasMany'
+            }
+          ]
+        };
+
+        const options = {
+          relate: true,
+          unrelate: true,
+          insertMissing: true,
+          fetchStrategy
+        };
+
+        return Model1.query(session.knex)
+          .upsertGraph(upsert, options)
+          .then(() => {
+            // Fetch the graph from the database.
+            return Model1.query(session.knex)
+              .findById(2)
+              .eager('model1Relation2(orderById).model2Relation1(orderById)');
+          })
+          .then(omitIrrelevantProps)
+          .then(result => {
+            expect(result).to.eql({
+              id: 2,
+              model1Id: 3,
+              model1Prop1: 'root 2',
+
+              model1Relation2: [
+                {
+                  idCol: 1,
+                  model1Id: 2,
+                  model2Prop1: 'updated hasMany 1',
+
+                  model2Relation1: [
+                    {
+                      id: 1,
+                      model1Id: null,
+                      model1Prop1: 'root 1'
+                    },
+                    {
+                      id: 4,
+                      model1Id: null,
+                      model1Prop1: 'updated manyToMany 1'
+                    },
+                    {
+                      id: 1000,
+                      model1Id: null,
+                      model1Prop1: 'inserted manyToMany'
+                    }
+                  ]
+                },
+                {
+                  idCol: 1000,
+                  model1Id: 2,
+                  model2Prop1: 'inserted hasMany',
+                  model2Relation1: []
+                }
+              ]
+            });
+          });
+      });
+
       it('should insert root model with an id instead of throwing an error if `insertMissing` option is true', () => {
         let upsert = {
           // This doesn't exist.
@@ -1989,6 +2087,7 @@ module.exports = session => {
           })
           .catch(err => {
             expect(err instanceof Model1.NotFoundError).to.equal(true);
+            expect(err.type).to.equal('NotFound');
             expect(err.message).to.equal(
               'model (id=1000) is not a child of model (id=2). If you want to relate it, use the relate option. If you want to insert it with an id, use the insertMissing option'
             );
@@ -2126,8 +2225,8 @@ module.exports = session => {
               ]
             });
 
-            return Promise.all([session.knex('Model1'), session.knex('model2')]).spread(
-              (model1Rows, model2Rows) => {
+            return Promise.all([session.knex('Model1'), session.knex('model2')]).then(
+              ([model1Rows, model2Rows]) => {
                 // Row 3 should NOT be deleted.
                 expect(model1Rows.find(it => it.id == 3)).to.eql({
                   id: 3,
@@ -2250,8 +2349,8 @@ module.exports = session => {
                 ]
               });
 
-              return Promise.all([trx('Model1'), trx('model2')]).spread(
-                (model1Rows, model2Rows) => {
+              return Promise.all([trx('Model1'), trx('model2')]).then(
+                ([model1Rows, model2Rows]) => {
                   // Row 5 should be deleted.
                   expect(model1Rows.find(it => it.id == 5)).to.equal(undefined);
                   // Row 6 should NOT be deleted even thought its parent is.
@@ -2382,6 +2481,101 @@ module.exports = session => {
             expect(err.type).to.equal('InvalidGraph');
             expect(err.message).to.equal(
               'expected value "not an object" to be an instance of Model2'
+            );
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should throw if any `where` calls are added to the query', done => {
+        Model1.bindKnex(session.knex)
+          .query()
+          .where('id', 1)
+          .upsertGraph(
+            {
+              id: 1
+            },
+            {
+              fetchStrategy
+            }
+          )
+          .then(() => {
+            throw new Error('should not get here');
+          })
+          .catch(err => {
+            expect(err.message).to.equal(
+              'upsertGraph query should contain no other query builder calls like `findById`, `where` or `$relatedQuery` that would affect the SQL. They have no effect.'
+            );
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should throw if any `findById` call is added to the query', done => {
+        Model1.bindKnex(session.knex)
+          .query()
+          .findById(1)
+          .upsertGraph(
+            {
+              id: 1
+            },
+            {
+              fetchStrategy
+            }
+          )
+          .then(() => {
+            throw new Error('should not get here');
+          })
+          .catch(err => {
+            expect(err.message).to.equal(
+              'upsertGraph query should contain no other query builder calls like `findById`, `where` or `$relatedQuery` that would affect the SQL. They have no effect.'
+            );
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should throw if any `findOne` call is added to the query', done => {
+        Model1.bindKnex(session.knex)
+          .query()
+          .findOne({ id: 1 })
+          .upsertGraph(
+            {
+              id: 1
+            },
+            {
+              fetchStrategy
+            }
+          )
+          .then(() => {
+            throw new Error('should not get here');
+          })
+          .catch(err => {
+            expect(err.message).to.equal(
+              'upsertGraph query should contain no other query builder calls like `findById`, `where` or `$relatedQuery` that would affect the SQL. They have no effect.'
+            );
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should throw if `upsertGraph` is used with `$relatedQuery`', done => {
+        Model1.fromJson({ id: 1 })
+          .$relatedQuery('model1Relation1', session.knex)
+          .upsertGraph(
+            {
+              id: 1
+            },
+            {
+              fetchStrategy
+            }
+          )
+          .then(() => {
+            throw new Error('should not get here');
+          })
+          .catch(err => {
+            expect(err.message).to.equal(
+              'upsertGraph query should contain no other query builder calls like `findById`, `where` or `$relatedQuery` that would affect the SQL. They have no effect.'
             );
             done();
           })
@@ -2894,6 +3088,241 @@ module.exports = session => {
               });
           });
         });
+
+        it('references to parent graph should produce an error in recursive upsert by default', done => {
+          const upsert = {
+            id: 2,
+            model1Prop1: 'updated root 2',
+
+            model1Relation1: {
+              '#id': 'inserted',
+              model1Prop1: 'foo'
+            },
+
+            // This will get related.
+            model1Relation3: [
+              {
+                idCol: 1,
+                model2Prop1: 'updated model2Prop1',
+
+                // This will also get related.
+                model2Relation2: {
+                  '#ref': 'inserted'
+                }
+              }
+            ]
+          };
+
+          const options = {
+            relate: true,
+            unrelate: true,
+            fetchStrategy
+          };
+
+          Model1.query(session.knex)
+            .upsertGraph(upsert, options)
+            .then(() => {
+              done(new Error('should not get here'));
+            })
+            .catch(err => {
+              expect(err.message).to.equal(
+                '#ref references are not allowed in a graph by default. see the allowRefs insert/upsert graph option'
+              );
+              done();
+            });
+        });
+
+        it('references to parent graph should work in recursive upsert', () => {
+          const upsert = {
+            id: 2,
+            model1Prop1: 'updated root 2',
+
+            model1Relation1: {
+              '#id': 'inserted',
+              model1Prop1: 'foo'
+            },
+
+            // This will get related.
+            model1Relation3: [
+              {
+                idCol: 1,
+                model2Prop1: 'updated model2Prop1',
+
+                // This will also get related.
+                model2Relation2: {
+                  '#ref': 'inserted'
+                }
+              }
+            ]
+          };
+
+          const options = {
+            relate: true,
+            unrelate: true,
+            allowRefs: true,
+            fetchStrategy
+          };
+
+          return Model1.query(session.knex)
+            .upsertGraph(upsert, options)
+            .then(result => {
+              chai.expect(result).to.containSubset({
+                id: 2,
+                model1Prop1: 'updated root 2',
+
+                model1Relation1: {
+                  model1Prop1: 'foo'
+                },
+
+                model1Relation3: [
+                  {
+                    idCol: 1,
+                    model2Prop1: 'updated model2Prop1',
+
+                    model2Relation2: {
+                      model1Prop1: 'foo'
+                    }
+                  }
+                ]
+              });
+
+              expect(result.model1Relation1.id).to.equal(
+                result.model1Relation3[0].model2Relation2.id
+              );
+
+              return Model1.query(session.knex)
+                .findById(2)
+                .withGraphFetched({
+                  model1Relation1: true,
+                  model1Relation3: {
+                    model2Relation2: true
+                  }
+                });
+            })
+            .then(result => {
+              chai.expect(result).to.containSubset({
+                id: 2,
+                model1Prop1: 'updated root 2',
+
+                model1Relation1: {
+                  model1Prop1: 'foo'
+                },
+
+                model1Relation3: [
+                  {
+                    idCol: 1,
+                    model2Prop1: 'updated model2Prop1',
+
+                    model2Relation2: {
+                      model1Prop1: 'foo'
+                    }
+                  }
+                ]
+              });
+
+              expect(result.model1Relation1.id).to.equal(
+                result.model1Relation3[0].model2Relation2.id
+              );
+            });
+        });
+
+        it('property references to parent graph should work in recursive upsert', () => {
+          const upsert = {
+            id: 2,
+            model1Prop1: 'updated root 2',
+
+            model1Relation1: {
+              '#id': 'inserted',
+              model1Prop1: 'foo',
+              model1Prop2: 101
+            },
+
+            // This will get related.
+            model1Relation3: [
+              {
+                idCol: 1,
+                model2Prop1: 'updated model2Prop1',
+
+                // This will get inserted.
+                model2Relation2: {
+                  model1Prop1: 'hello #ref{inserted.model1Prop1} #ref{inserted.model1Prop2}',
+                  model1Prop2: '#ref{inserted.model1Prop2}'
+                }
+              }
+            ]
+          };
+
+          const options = {
+            relate: true,
+            unrelate: true,
+            allowRefs: true,
+            fetchStrategy
+          };
+
+          return Model1.query(session.knex)
+            .upsertGraph(upsert, options)
+            .then(result => {
+              chai.expect(result).to.containSubset({
+                id: 2,
+                model1Prop1: 'updated root 2',
+
+                model1Relation1: {
+                  model1Prop1: 'foo'
+                },
+
+                model1Relation3: [
+                  {
+                    idCol: 1,
+                    model2Prop1: 'updated model2Prop1',
+
+                    model2Relation2: {
+                      model1Prop1: 'hello foo 101',
+                      model1Prop2: 101
+                    }
+                  }
+                ]
+              });
+
+              expect(result.model1Relation1.id).to.not.equal(
+                result.model1Relation3[0].model2Relation2.id
+              );
+
+              return Model1.query(session.knex)
+                .findById(2)
+                .withGraphFetched({
+                  model1Relation1: true,
+                  model1Relation3: {
+                    model2Relation2: true
+                  }
+                });
+            })
+            .then(result => {
+              chai.expect(result).to.containSubset({
+                id: 2,
+                model1Prop1: 'updated root 2',
+
+                model1Relation1: {
+                  model1Prop1: 'foo'
+                },
+
+                model1Relation3: [
+                  {
+                    idCol: 1,
+                    model2Prop1: 'updated model2Prop1',
+
+                    model2Relation2: {
+                      model1Prop1: 'hello foo 101',
+                      model1Prop2: 101
+                    }
+                  }
+                ]
+              });
+
+              expect(result.model1Relation1.id).to.not.equal(
+                result.model1Relation3[0].model2Relation2.id
+              );
+            });
+        });
       });
 
       describe('validation and transactions', () => {
@@ -3073,7 +3502,7 @@ module.exports = session => {
           return Promise.map(fails, fail => {
             return transaction(session.knex, trx =>
               Model1.query(trx).upsertGraph(fail, { fetchStrategy })
-            ).reflect();
+            ).catch(err => createRejectionReflection(err));
           })
             .then(results => {
               // Check that all transactions have failed because of a validation error.
@@ -3140,8 +3569,8 @@ module.exports = session => {
                       ]
                     });
 
-                    return Promise.all([trx('Model1'), trx('model2')]).spread(
-                      (model1Rows, model2Rows) => {
+                    return Promise.all([trx('Model1'), trx('model2')]).then(
+                      ([model1Rows, model2Rows]) => {
                         // Row 5 should be deleted.
                         expect(model1Rows.find(it => it.id == 5)).to.equal(undefined);
                         // Row 6 should NOT be deleted even thought its parent is.
@@ -3190,7 +3619,8 @@ module.exports = session => {
           const options = {
             // Insert missing from the root.
             insertMissing: [''],
-            fetchStrategy
+            fetchStrategy,
+            allowRefs: true
           };
 
           return Model1.query(session.knex)
@@ -3266,7 +3696,8 @@ module.exports = session => {
           const options = {
             // Insert missing from the root.
             insertMissing: [''],
-            fetchStrategy
+            fetchStrategy,
+            allowRefs: true
           };
 
           return Model1.query(session.knex)
@@ -3342,7 +3773,8 @@ module.exports = session => {
           const options = {
             // Insert missing from the root.
             insertMissing: [''],
-            fetchStrategy
+            fetchStrategy,
+            allowRefs: true
           };
 
           Model1.query(session.knex)
@@ -3378,7 +3810,7 @@ module.exports = session => {
           delete Model1.$$validator;
         });
 
-        it('should fail to do an incomplete upsert', () => {
+        it('should fail to do an incomplete upsert', async () => {
           const fails = [
             {
               id: 2,
@@ -3425,7 +3857,7 @@ module.exports = session => {
           return Promise.map(fails, fail => {
             return transaction(session.knex, trx =>
               Model1.query(trx).upsertGraph(fail, { update: true, fetchStrategy })
-            ).reflect();
+            ).catch(err => createRejectionReflection(err));
           })
             .then(results => {
               // Check that all transactions have failed because of a validation error.
@@ -3480,7 +3912,7 @@ module.exports = session => {
 
           Model1.bindKnex(session.knex)
             .query()
-            .upsertGraph(upsert, { fetchStrategy })
+            .upsertGraph(upsert, { fetchStrategy, allowRefs: true })
             .then(() => {
               done(new Error('should not get here'));
             })
@@ -3514,7 +3946,7 @@ module.exports = session => {
 
           return Model1.bindKnex(session.knex)
             .query()
-            .upsertGraph(upsert, { fetchStrategy })
+            .upsertGraph(upsert, { fetchStrategy, allowRefs: true })
             .then(() => {
               return Model1.query(session.knex)
                 .findById(2)
@@ -3712,7 +4144,7 @@ module.exports = session => {
                 chai.expect(result).to.containSubset({
                   id: 2,
                   model1Id: 3,
-                  $afterGetCalled: 1,
+                  $afterFindCalled: 1,
 
                   model1Relation1: {
                     id: 3,
@@ -3779,7 +4211,7 @@ module.exports = session => {
   }
 
   function omitIrrelevantProps(model) {
-    const delProps = ['model1Prop2', 'model2Prop2', 'aliasedExtra', '$afterGetCalled'];
+    const delProps = ['model1Prop2', 'model2Prop2', 'aliasedExtra', '$afterFindCalled'];
 
     Model1.traverse(model, model => {
       delProps.forEach(prop => delete model[prop]);

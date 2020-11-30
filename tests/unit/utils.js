@@ -12,29 +12,9 @@ const {
 const { range } = require('lodash');
 const { compose, mixin } = require('../../lib/utils/mixin');
 const { map } = require('../../lib/utils/promiseUtils');
-const { jsonEquals } = require('../../lib/utils/objectUtils');
+const { jsonEquals, uniqBy } = require('../../lib/utils/objectUtils');
 
 describe('utils', () => {
-  describe('isSubclassOf', () => {
-    class A {}
-    class B extends A {}
-    class C extends B {}
-
-    it('should return true for subclass constructor', () => {
-      expect(classUtils.isSubclassOf(B, A)).to.equal(true);
-      expect(classUtils.isSubclassOf(C, B)).to.equal(true);
-      expect(classUtils.isSubclassOf(C, A)).to.equal(true);
-      expect(classUtils.isSubclassOf(A, B)).to.equal(false);
-      expect(classUtils.isSubclassOf(B, C)).to.equal(false);
-      expect(classUtils.isSubclassOf(A, C)).to.equal(false);
-    });
-
-    it('should return false if one of the inputs is not a constructor', () => {
-      expect(classUtils.isSubclassOf(function() {}, {})).to.equal(false);
-      expect(classUtils.isSubclassOf({}, function() {})).to.equal(false);
-    });
-  });
-
   describe('mixin', () => {
     it('should mixin rest of the arguments to the first argument', () => {
       class X {}
@@ -91,10 +71,7 @@ describe('utils', () => {
           }
         };
 
-      const m3 = compose(
-        m1,
-        m2
-      );
+      const m3 = compose(m1, m2);
       const m4 = compose([m1, m2]);
 
       const Y = m3(X);
@@ -164,6 +141,35 @@ describe('utils', () => {
       testUnderscoreBeforeNumbers('fooBar:spamBaz:troloLolo', 'foo_bar:spam_baz:trolo_lolo');
       testUnderscoreBeforeNumbers('fooBar.spamBaz.troloLolo', 'foo_bar.spam_baz.trolo_lolo');
 
+      testUnderscoreBetweenUppercaseLetters('*', '*');
+
+      testUnderscoreBetweenUppercaseLetters('foo', 'foo');
+      testUnderscoreBetweenUppercaseLetters('fooBar', 'foo_bar');
+      testUnderscoreBetweenUppercaseLetters('foo1Bar2', 'foo1_bar2');
+      testUnderscoreBetweenUppercaseLetters('fooBAR', 'foo_b_a_r');
+      testUnderscoreBetweenUppercaseLetters('fooBaR', 'foo_ba_r');
+
+      testUnderscoreBetweenUppercaseLetters('föö', 'föö');
+      testUnderscoreBetweenUppercaseLetters('fööBär', 'föö_bär');
+      testUnderscoreBetweenUppercaseLetters('föö1Bär2', 'föö1_bär2');
+      testUnderscoreBetweenUppercaseLetters('föö09Bär90', 'föö09_bär90');
+      testUnderscoreBetweenUppercaseLetters('fööBÄR', 'föö_b_ä_r');
+      testUnderscoreBetweenUppercaseLetters('fööBäR', 'föö_bä_r');
+
+      testUnderscoreBetweenUppercaseLetters('foo1bar2', 'foo1bar2');
+      testUnderscoreBetweenUppercaseLetters('Foo', 'foo', 'foo');
+      testUnderscoreBetweenUppercaseLetters('FooBar', 'foo_bar', 'fooBar');
+      testUnderscoreBetweenUppercaseLetters('märkäLänttiÄäliö', 'märkä_läntti_ääliö');
+
+      testUnderscoreBetweenUppercaseLetters(
+        'fooBar:spamBaz:troloLolo',
+        'foo_bar:spam_baz:trolo_lolo'
+      );
+      testUnderscoreBetweenUppercaseLetters(
+        'fooBar.spamBaz.troloLolo',
+        'foo_bar.spam_baz.trolo_lolo'
+      );
+
       function test(camel, snake, backToCamel) {
         backToCamel = backToCamel || camel;
 
@@ -179,6 +185,16 @@ describe('utils', () => {
       function testUnderscoreBeforeNumbers(camel, snake, backToCamel) {
         backToCamel = backToCamel || camel;
         const opt = { underscoreBeforeDigits: true };
+
+        it(`${camel} --> ${snake} --> ${backToCamel}`, () => {
+          expect(snakeCase(camel, opt)).to.equal(snake);
+          expect(camelCase(snakeCase(camel, opt), opt)).to.equal(backToCamel);
+        });
+      }
+
+      function testUnderscoreBetweenUppercaseLetters(camel, snake, backToCamel) {
+        backToCamel = backToCamel || camel;
+        const opt = { underscoreBetweenUppercaseLetters: true };
 
         it(`${camel} --> ${snake} --> ${backToCamel}`, () => {
           expect(snakeCase(camel, opt)).to.equal(snake);
@@ -202,7 +218,7 @@ describe('utils', () => {
           maxRunning = Math.max(maxRunning, running);
 
           return Promise.delay(Math.round(Math.random() * 10))
-            .return(2 * item)
+            .then(() => 2 * item)
             .then(result => {
               --running;
               return result;
@@ -260,7 +276,7 @@ describe('utils', () => {
             expect(running).to.be.lessThan(concurrency + 1);
 
             return Promise.delay(Math.round(Math.random() * 10))
-              .return(2 * item)
+              .then(() => 2 * item)
               .then(result => {
                 --running;
                 return result;
@@ -410,6 +426,25 @@ describe('utils', () => {
           ]
         )
       ).to.equal(false);
+    });
+  });
+  describe('uniqBy', () => {
+    const items = [
+      [Buffer.from('00000000000000000000000000007AAD', 'hex')],
+      [Buffer.from('00000000000000000000000000007AAE', 'hex')],
+      [Buffer.from('00000000000000000000000000007AAC', 'hex')]
+    ];
+    it('should work with Buffer items', () => {
+      const itemsForTest = items.map(([value]) => value);
+      expect(uniqBy(itemsForTest)).to.eql(itemsForTest);
+    });
+    it('should work with Buffer[] items', () => {
+      expect(uniqBy(items)).to.eql(items);
+    });
+    it('should work with Buffer[] items with custom keyGetter function', () => {
+      expect(
+        uniqBy(items, item => item.map(x => (Buffer.isBuffer(x) ? x.toString('hex') : x)).join(','))
+      ).to.eql(items);
     });
   });
 });

@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const expect = require('expect.js');
 const Promise = require('bluebird');
+const { createRejectionReflection } = require('../../../testUtils/testUtils');
 
 module.exports = session => {
   describe('using unbound models by passing a knex to query', () => {
@@ -136,14 +137,14 @@ module.exports = session => {
             model1Id: 2,
             model1Prop1: 'hello 1',
             model1Prop2: null,
-            $afterGetCalled: 1,
+            $afterFindCalled: 1,
 
             model1Relation1: {
               id: 2,
               model1Id: 3,
               model1Prop1: 'hello 2',
               model1Prop2: null,
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             },
 
             model1Relation2: [
@@ -152,7 +153,7 @@ module.exports = session => {
                 model1Id: 1,
                 model2Prop1: 'hejsan 1',
                 model2Prop2: null,
-                $afterGetCalled: 1,
+                $afterFindCalled: 1,
                 model2Relation1: []
               },
               {
@@ -160,7 +161,7 @@ module.exports = session => {
                 model1Id: 1,
                 model2Prop1: 'hejsan 2',
                 model2Prop2: null,
-                $afterGetCalled: 1,
+                $afterFindCalled: 1,
 
                 model2Relation1: [
                   {
@@ -171,7 +172,7 @@ module.exports = session => {
                     aliasedExtra: 'extra 5',
                     model1Relation1: null,
                     model1Relation2: [],
-                    $afterGetCalled: 1
+                    $afterFindCalled: 1
                   },
                   {
                     id: 6,
@@ -179,14 +180,14 @@ module.exports = session => {
                     model1Prop1: 'hello 6',
                     model1Prop2: null,
                     aliasedExtra: 'extra 6',
-                    $afterGetCalled: 1,
+                    $afterFindCalled: 1,
 
                     model1Relation1: {
                       id: 7,
                       model1Id: null,
                       model1Prop1: 'hello 7',
                       model1Prop2: null,
-                      $afterGetCalled: 1
+                      $afterFindCalled: 1
                     },
 
                     model1Relation2: [
@@ -195,7 +196,7 @@ module.exports = session => {
                         model1Id: 6,
                         model2Prop1: 'hejsan 3',
                         model2Prop2: null,
-                        $afterGetCalled: 1
+                        $afterFindCalled: 1
                       }
                     ]
                   }
@@ -221,12 +222,12 @@ module.exports = session => {
         });
       });
 
-      it('joinRelation in subquery', () => {
+      it('joinRelated in subquery', () => {
         const query = Model1.query().whereIn(
           'id',
           Model1.query()
             .select('Model1.id')
-            .joinRelation('model1Relation1')
+            .joinRelated('model1Relation1')
             .where('model1Relation1.id', 4)
         );
 
@@ -283,7 +284,7 @@ module.exports = session => {
             model1Id: 3,
             model1Prop1: 'hello 2',
             model1Prop2: null,
-            $afterGetCalled: 1
+            $afterFindCalled: 1
           });
 
           expect(results[1]).to.eql({
@@ -291,7 +292,7 @@ module.exports = session => {
             model1Id: 2,
             model1Prop1: 'hello 1',
             model1Prop2: null,
-            $afterGetCalled: 1
+            $afterFindCalled: 1
           });
 
           expect(_.sortBy(results[2], 'idCol')).to.eql([
@@ -300,14 +301,14 @@ module.exports = session => {
               model1Id: 1,
               model2Prop1: 'hejsan 1',
               model2Prop2: null,
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             },
             {
               idCol: 2,
               model1Id: 1,
               model2Prop1: 'hejsan 2',
               model2Prop2: null,
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             }
           ]);
 
@@ -318,7 +319,7 @@ module.exports = session => {
               model1Prop1: 'hello 5',
               model1Prop2: null,
               aliasedExtra: 'extra 5',
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             },
             {
               id: 6,
@@ -326,7 +327,7 @@ module.exports = session => {
               model1Prop1: 'hello 6',
               model1Prop2: null,
               aliasedExtra: 'extra 6',
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             }
           ]);
         });
@@ -348,7 +349,7 @@ module.exports = session => {
               model1Id: 2,
               model1Prop1: 'hello 1',
               model1Prop2: null,
-              $afterGetCalled: 1
+              $afterFindCalled: 1
             }
           ]);
         });
@@ -385,28 +386,28 @@ module.exports = session => {
       });
     });
 
-    it('joinRelation (BelongsToOneRelation)', () => {
+    it('joinRelated (BelongsToOneRelation)', () => {
       return Model1.query(session.knex)
         .select('Model1.id as id', 'model1Relation1.id as relId')
-        .innerJoinRelation('model1Relation1')
+        .innerJoinRelated('model1Relation1')
         .then(models => {
           expect(_.sortBy(models, 'id')).to.eql([
-            { id: 1, relId: 2, $afterGetCalled: 1 },
-            { id: 2, relId: 3, $afterGetCalled: 1 },
-            { id: 3, relId: 4, $afterGetCalled: 1 },
-            { id: 6, relId: 7, $afterGetCalled: 1 }
+            { id: 1, relId: 2, $afterFindCalled: 1 },
+            { id: 2, relId: 3, $afterFindCalled: 1 },
+            { id: 3, relId: 4, $afterFindCalled: 1 },
+            { id: 6, relId: 7, $afterFindCalled: 1 }
           ]);
         });
     });
 
-    it('joinRelation (ManyToManyRelation)', () => {
+    it('joinRelated (ManyToManyRelation)', () => {
       return Model1.query(session.knex)
         .select('Model1.id as id', 'model1Relation3.id_col as relId')
-        .innerJoinRelation('model1Relation3')
+        .innerJoinRelated('model1Relation3')
         .then(models => {
           expect(_.sortBy(models, 'id')).to.eql([
-            { id: 5, relId: 2, $afterGetCalled: 1 },
-            { id: 6, relId: 2, $afterGetCalled: 1 }
+            { id: 5, relId: 2, $afterFindCalled: 1 },
+            { id: 6, relId: 2, $afterFindCalled: 1 }
           ]);
         });
     });
@@ -419,7 +420,7 @@ module.exports = session => {
             .eager(
               '[model1Relation1, model1Relation2.model2Relation1.[model1Relation1, model1Relation2]]'
             );
-        }).reflect(),
+        }).catch(err => createRejectionReflection(err)),
 
         Promise.try(() => {
           return Model1.query()
@@ -428,54 +429,59 @@ module.exports = session => {
             .eager(
               '[model1Relation1, model1Relation2.model2Relation1.[model1Relation1, model1Relation2]]'
             );
-        }).reflect(),
+        }).catch(err => createRejectionReflection(err)),
 
         Promise.try(() => {
           return Model1.query();
-        }).reflect(),
+        }).catch(err => createRejectionReflection(err)),
 
         Promise.try(() => {
           return Model1.query().where('id', 1);
-        }).reflect(),
+        }).catch(err => createRejectionReflection(err)),
 
         Promise.try(() => {
-          return Model1.query().joinRelation('model1Relation1');
-        }).reflect(),
+          return Model1.query().joinRelated('model1Relation1');
+        }).catch(err => createRejectionReflection(err)),
 
-        Model1.query(session.knex)
-          .findById(1)
-          .then(model => {
-            return model.$relatedQuery('model1Relation1');
-          })
-          .reflect(),
+        Promise.try(() => {
+          return Model1.query(session.knex)
+            .findById(1)
+            .then(model => {
+              return model.$relatedQuery('model1Relation1');
+            });
+        }).catch(err => createRejectionReflection(err)),
 
-        Model1.query(session.knex)
-          .findById(2)
-          .then(model => {
-            return model.$relatedQuery('model1Relation1Inverse');
-          })
-          .reflect(),
+        Promise.try(() => {
+          return Model1.query(session.knex)
+            .findById(2)
+            .then(model => {
+              return model.$relatedQuery('model1Relation1Inverse');
+            });
+        }).catch(err => createRejectionReflection(err)),
 
-        Model1.query(session.knex)
-          .findById(1)
-          .then(model => {
-            return model.$relatedQuery('model1Relation2');
-          })
-          .reflect(),
+        Promise.try(() => {
+          return Model1.query(session.knex)
+            .findById(1)
+            .then(model => {
+              return model.$relatedQuery('model1Relation2');
+            });
+        }).catch(err => createRejectionReflection(err)),
 
-        Model2.query(session.knex)
-          .findById(2)
-          .then(model => {
-            return model.$relatedQuery('model2Relation1');
-          })
-          .reflect(),
+        Promise.try(() => {
+          return Model2.query(session.knex)
+            .findById(2)
+            .then(model => {
+              return model.$relatedQuery('model2Relation1');
+            });
+        }).catch(err => createRejectionReflection(err)),
 
-        Model1.query(session.knex)
-          .findById(1)
-          .then(model => {
-            return model.$query();
-          })
-          .reflect()
+        Promise.try(() => {
+          return Model1.query(session.knex)
+            .findById(1)
+            .then(model => {
+              return model.$query();
+            });
+        }).catch(err => createRejectionReflection(err))
       ]).then(results => {
         results.forEach(result => {
           expect(result.isRejected()).to.equal(true);
